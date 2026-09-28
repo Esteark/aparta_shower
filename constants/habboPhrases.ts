@@ -1,0 +1,22 @@
+export const HABBO_NOSTALGIA_PHRASES = [
+  "weeee ke onda!",
+  "aki andamos jaja",
+  "sisi ahi voy",
+  "vale bkn nos vemos",
+  "agrégenme plis",
+  "jajaja xD",
+  "salu2 a todos",
+  "wenas wenas",
+  "nos vidrios en el hotel",
+  "brb ya vuelvo",
+  "kdo pendiente",
+  "ke emoción!! :)",
+  "aki seguimos jeje",
+  "plop plop",
+  "ammm sipi",
+  "no me falla xD",
+  "todo bkn por aki",
+  "avisenme cualkier kosa",
+  "seeeh cuenten conmigo",
+  "nos vemos en la sala!"
+];
