@@ -34,6 +34,16 @@ const MESSAGES = [
   ].filter((p) => HABBO_NOSTALGIA_PHRASES.includes(p)),
 ];
 
+// While nobody has confirmed, the same chat cycle rotates these instead
+// (heads rotate too, for visual consistency with real guests).
+const EMPTY_STATE_MESSAGES = [
+  "Aún no hay nadie... 🥺",
+  "No viene nadie :(",
+  "¡Por favor ven!",
+  "La sala está muy sola...",
+  "¡Sé el primero en confirmar!",
+];
+
 // Seeded by the guest's name so the same person always gets the same head,
 // across re-renders and Realtime reconnects.
 function headFor(nombre: string): SpriteName {
@@ -100,6 +110,9 @@ export default function LiveConfirmedList() {
   const chatRef = useRef<HTMLDivElement>(null);
   const guestsRef = useRef<Guest[]>([]);
   const cursorRef = useRef(0);
+  // Set by the chat cycle below; Realtime calls it when the guest list
+  // goes empty ↔ non-empty so the switch happens right away.
+  const kickRef = useRef<(() => void) | null>(null);
 
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
@@ -143,6 +156,12 @@ export default function LiveConfirmedList() {
 
       const gapFor = (el: HTMLElement) => el.offsetHeight * 0.18;
 
+      // Which list is feeding the chat. Lines from the two never share the
+      // column: switching mode clears whatever is up first.
+      let mode: "guests" | "empty" | null = null;
+      let emptyCursor = 0;
+      const currentMode = () => (guestsRef.current.length > 0 ? "guests" : "empty");
+
       const retire = contextSafe((el: HTMLElement, y: number) => {
         gsap.to(el, {
           y: y - el.offsetHeight * 0.6,
@@ -184,27 +203,40 @@ export default function LiveConfirmedList() {
         lines = kept;
       });
 
+      const clearLines = contextSafe(() => {
+        lines.forEach((el) => retire(el, Number(gsap.getProperty(el, "y"))));
+        lines = [];
+      });
+
       const spawn = contextSafe(() => {
         const list = guestsRef.current;
-        if (list.length === 0) return;
-
-        const guest = list[cursorRef.current % list.length];
-        cursorRef.current = (cursorRef.current + 1) % list.length;
+        const nowMode = currentMode();
+        if (mode !== null && nowMode !== mode) clearLines();
+        mode = nowMode;
 
         const line = document.createElement("div");
         line.className = "habbo-bubble room-chat-line";
 
         const head = document.createElement("img");
-        head.src = SPRITES[headFor(guest.nombre)].src;
         head.alt = "";
         head.className = "room-chat-head";
         head.draggable = false;
 
         const text = document.createElement("p");
         text.className = "room-chat-text";
-        const name = document.createElement("strong");
-        name.textContent = `${guest.nombre}:`;
-        text.append(name, ` ${messageFor(guest.nombre)}`);
+
+        if (nowMode === "guests") {
+          const guest = list[cursorRef.current % list.length];
+          cursorRef.current = (cursorRef.current + 1) % list.length;
+          head.src = SPRITES[headFor(guest.nombre)].src;
+          const name = document.createElement("strong");
+          name.textContent = `${guest.nombre}:`;
+          text.append(name, ` ${messageFor(guest.nombre)}`);
+        } else {
+          head.src = SPRITES[HEADS[emptyCursor % HEADS.length]].src;
+          text.textContent = EMPTY_STATE_MESSAGES[emptyCursor % EMPTY_STATE_MESSAGES.length];
+          emptyCursor++;
+        }
 
         line.append(head, text);
         chat.append(line);
@@ -239,6 +271,14 @@ export default function LiveConfirmedList() {
       });
       schedule(0.6);
 
+      // Empty ↔ non-empty switch: don't wait out the 2–3s gap, the next
+      // line (from the other list) comes right away.
+      kickRef.current = contextSafe(() => {
+        if (mode === null || currentMode() === mode) return;
+        next?.kill();
+        schedule(0.3);
+      });
+
       ScrollTrigger.create({
         trigger: stage,
         start: "top bottom",
@@ -256,6 +296,7 @@ export default function LiveConfirmedList() {
 
       return () => {
         ro.disconnect();
+        kickRef.current = null;
         chat.replaceChildren();
       };
     },
@@ -293,6 +334,31 @@ export default function LiveConfirmedList() {
 
   // Subscribes once for the component's lifetime — never resubscribe on re-render.
   useEffect(() => {
+    const commit = (next: Guest[]) => {
+      guestsRef.current = next;
+      setGuests(next);
+      kickRef.current?.();
+    };
+
+    const addGuest = (row: Rsvp) => {
+      const list = guestsRef.current;
+      if (list.some((g) => g.id === row.id)) return;
+      // Joins the cycle right at the cursor, so it's the next to talk.
+      const next = [...list];
+      next.splice(cursorRef.current, 0, { id: row.id, nombre: row.nombre });
+      commit(next);
+    };
+
+    const removeGuest = (id: string) => {
+      const list = guestsRef.current;
+      const index = list.findIndex((g) => g.id === id);
+      if (index === -1) return;
+      // Keep the cursor on the same upcoming guest.
+      if (index < cursorRef.current) cursorRef.current -= 1;
+      commit(list.filter((g) => g.id !== id));
+    };
+
+    // DELETE payloads only carry the primary key, which is all we need.
     const channel = supabase
       .channel("rsvps-realtime")
       .on(
@@ -300,15 +366,24 @@ export default function LiveConfirmedList() {
         { event: "INSERT", schema: "public", table: "rsvps" },
         (payload) => {
           const row = payload.new as Rsvp;
-          if (!row.asistencia) return;
-          const list = guestsRef.current;
-          if (list.some((g) => g.id === row.id)) return;
-
-          // Joins the cycle right at the cursor, so it's the next to talk.
-          const next = [...list];
-          next.splice(cursorRef.current, 0, { id: row.id, nombre: row.nombre });
-          guestsRef.current = next;
-          setGuests(next);
+          if (row.asistencia) addGuest(row);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "UPDATE", schema: "public", table: "rsvps" },
+        (payload) => {
+          const row = payload.new as Rsvp;
+          if (row.asistencia) addGuest(row);
+          else removeGuest(row.id);
+        }
+      )
+      .on(
+        "postgres_changes",
+        { event: "DELETE", schema: "public", table: "rsvps" },
+        (payload) => {
+          const id = (payload.old as Partial<Rsvp>).id;
+          if (id) removeGuest(id);
         }
       )
       .subscribe();
@@ -381,15 +456,15 @@ export default function LiveConfirmedList() {
                 </div>
               </div>
 
-              {guests.length === 0 && (
-                <p className="room-empty">Sé el primero en confirmar 🎉</p>
+              {guests.length === 0 ? (
+                <p className="visually-hidden">Aún no hay confirmados. ¡Sé el primero!</p>
+              ) : (
+                <ul className="visually-hidden">
+                  {guests.map((g) => (
+                    <li key={g.id}>{g.nombre}</li>
+                  ))}
+                </ul>
               )}
-
-              <ul className="visually-hidden">
-                {guests.map((g) => (
-                  <li key={g.id}>{g.nombre}</li>
-                ))}
-              </ul>
             </div>
           )}
         </div>
