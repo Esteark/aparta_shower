@@ -493,6 +493,15 @@ h3 {
   padding-bottom: calc(var(--section-pad) + clamp(60px, 10vw, 110px));
 }
 
+/* Desktop: the old lane left the top ~60% of the bike behind the form card.
+   Drop it below the form so the card only overlaps the sprite's transparent
+   top padding while it crosses. */
+@media (min-width: 1024px) {
+  .rsvp-section {
+    padding-bottom: calc(1.5rem + var(--moto-h));
+  }
+}
+
 @media (max-width: 768px) {
   .rsvp-section {
     padding-bottom: calc(1.5rem + var(--moto-h) + 2rem);

@@ -118,9 +118,15 @@ export default function RsvpForm() {
         );
 
       const mm = gsap.matchMedia(containerRef.current ?? undefined);
-      // Tablet/desktop: the crossing spans the whole section.
-      mm.add("(min-width: 769px)", () => {
+      // Tablet: the crossing spans the whole section.
+      mm.add("(min-width: 769px) and (max-width: 1023px)", () => {
         driveMoto({ trigger: containerRef.current, start: "top 80%", end: "bottom 20%" });
+      });
+      // Desktop: the bike now sits below the form, so a section-wide range
+      // would finish with it half off the top edge — run the crossing while
+      // the bike itself is in view instead.
+      mm.add("(min-width: 1024px)", () => {
+        driveMoto({ trigger: ".rsvp-moto", start: "bottom bottom", end: "top 15%" });
       });
       // Mobile: the section is taller than the screen, so a section-wide
       // range only brought the bike on screen at the very end, already up
