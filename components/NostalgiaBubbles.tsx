@@ -39,7 +39,7 @@ function visibleDecors() {
 }
 
 const SOLID = "img, svg, canvas, button, input, textarea, select, a, label";
-const TEXT_AIR = 6;
+const TEXT_AIR = 10;
 
 // Anything that paints a box of its own (cards, panels, chips…).
 function paintsBox(el: Element) {
@@ -108,7 +108,7 @@ function pickSpot(w: number, h: number, taken: Rect[]) {
     if (taken.some((o) => overlaps(r, o))) continue;
     // Sampled a bit outside the bubble so it keeps some air around content
     // (headings still sliding in on their reveal, etc.).
-    const g = 6;
+    const g = 14;
     const points: [number, number][] = [
       [r.left - g, r.top - g],
       [r.right + g, r.top - g],

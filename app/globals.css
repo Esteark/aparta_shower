@@ -185,7 +185,7 @@ h3 {
    for the logo next to the content column, so it drops that reserve and
    the content stays vertically centered. */
 .hero-section {
-  --hero-logo-w: clamp(72px, 20vw, 96px);
+  --hero-logo-w: clamp(120px, 36vw, 150px);
   min-height: 100svh;
   padding-top: calc(var(--hero-logo-w) * 252 / 257 + 2rem);
 }
