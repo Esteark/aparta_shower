@@ -495,10 +495,10 @@ h3 {
 
 /* Desktop: the old lane left the top ~60% of the bike behind the form card.
    Drop it below the form so the card only overlaps the sprite's transparent
-   top padding while it crosses. */
+   top padding while it crosses; the extra 3.5rem keeps a clear gap. */
 @media (min-width: 1024px) {
   .rsvp-section {
-    padding-bottom: calc(1.5rem + var(--moto-h));
+    padding-bottom: calc(1.5rem + var(--moto-h) + 3.5rem);
   }
 }
 
