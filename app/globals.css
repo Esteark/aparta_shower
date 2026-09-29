@@ -461,6 +461,26 @@ h3 {
   aspect-ratio: 16 / 10;
 }
 
+/* RSVP section: the bottom padding is the quad bike's lane (the bike sits
+   1.5rem above the section's bottom edge, see components/RsvpForm.tsx).
+   Tablet/desktop let it tuck partly behind the form; on mobile the lane
+   holds the whole bike, so the twins aren't hidden behind the card. */
+.rsvp-section {
+  --moto-h: clamp(150px, 24vw, 260px);
+  padding-bottom: calc(var(--section-pad) + clamp(60px, 10vw, 110px));
+}
+
+@media (max-width: 768px) {
+  .rsvp-section {
+    padding-bottom: calc(1.5rem + var(--moto-h) + 2rem);
+  }
+
+  /* More breathing room after the RSVP section. */
+  .confirmed-section {
+    padding-top: calc(var(--section-pad) + 2.5rem);
+  }
+}
+
 .room-wrap {
   margin-top: 1.5rem;
 }

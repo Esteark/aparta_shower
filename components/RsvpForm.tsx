@@ -3,7 +3,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
 import { gsap, ScrollTrigger, useGSAP, registerGsapPlugins } from "@/lib/gsap";
 import { supabase } from "@/lib/supabase";
-import { Item, ITEM_CATEGORIAS } from "@/types/rsvp";
+import { Item, ITEM_CATEGORIAS, Rsvp } from "@/types/rsvp";
 import PixelIcon from "./PixelIcon";
 import Decor, { animateDecor } from "./Decor";
 import Sprite from "./Sprite";
@@ -17,12 +17,45 @@ type ItemsStatus = "loading" | "loaded" | "error";
 // selection state as real item ids, but is never sent to claim_item.
 const OTRO_ID = "__otro__";
 
+const SAVE_ERROR_MSG =
+  "No pudimos guardar tu confirmación — revisa tu internet e intenta de nuevo en un momento";
+
+// Caps every Supabase request, so a dead connection surfaces as an error
+// instead of leaving the form stuck on "Enviando...".
+const REQUEST_TIMEOUT_MS = 12_000;
+const requestTimeout = () => AbortSignal.timeout(REQUEST_TIMEOUT_MS);
+
+// status 0 = the request never got an answer (offline, timeout);
+// 5xx = Supabase itself is down or the project is paused.
+const isUnavailable = (status: number) => status === 0 || status >= 500;
+
+// Case- and surrounding-whitespace-insensitive name match ("Juan" and
+// "juan " are the same guest). ilike with no wildcards is a
+// case-insensitive equality; the name's own %, _ and \ are escaped.
+async function hasRsvpNamed(nombre: string): Promise<boolean> {
+  const pattern = nombre.replace(/[\\%_]/g, (c) => `\\${c}`);
+  const { data, error } = await supabase
+    .from("rsvps")
+    .select("id")
+    .ilike("nombre", pattern)
+    .limit(1)
+    .abortSignal(requestTimeout());
+  if (error) throw error;
+  return (data ?? []).length > 0;
+}
+
+async function insertRsvp(row: Omit<Rsvp, "id" | "created_at">) {
+  const { error } = await supabase.from("rsvps").insert(row).abortSignal(requestTimeout());
+  if (error) throw error;
+}
+
 async function fetchAvailableItems(): Promise<{ items: Item[]; error: boolean }> {
   const { data, error } = await supabase
     .from("items")
     .select("*")
     .order("categoria", { ascending: true })
-    .order("nombre", { ascending: true });
+    .order("nombre", { ascending: true })
+    .abortSignal(requestTimeout());
 
   if (error) return { items: [], error: true };
   return {
@@ -435,79 +468,75 @@ export default function RsvpForm() {
     setStatus("submitting");
     setErrorMsg("");
 
-    // Declining: nothing to claim, straight insert. Stays locked
-    // (isSubmittingRef) until the farewell animation finishes.
-    if (!asistencia) {
-      const nombreInvitado = nombre.trim();
-      const { error } = await supabase.from("rsvps").insert({
-        nombre: nombreInvitado,
-        asistencia: false,
-        utensilio: null,
-        item_id: null,
-      });
-
-      if (error) {
-        isSubmittingRef.current = false;
-        setStatus("error");
-        setErrorMsg("No se pudo enviar tu respuesta. Intenta de nuevo.");
-        return;
-      }
-
-      setFarewellName(nombreInvitado);
-      setStatus("farewell");
-      return;
-    }
-
-    // "Otro": free text, no real item to claim.
-    if (selectedItemId === OTRO_ID) {
-      const { error } = await supabase.from("rsvps").insert({
-        nombre: nombre.trim(),
-        asistencia: true,
-        utensilio: otroTexto.trim(),
-        item_id: null,
-      });
-
-      isSubmittingRef.current = false;
-
-      if (error) {
-        setStatus("error");
-        setErrorMsg("No se pudo enviar tu confirmación. Intenta de nuevo.");
-        return;
-      }
-
-      setStatus("success");
-      resetForm();
-      return;
-    }
-
-    const { error: claimError } = await supabase.rpc("claim_item", {
-      item_id_input: selectedItemId,
-    });
-
-    if (claimError) {
+    const nombreInvitado = nombre.trim();
+    // Every failure path leaves the form exactly as the guest filled it
+    // (name, answer, utensil) with the button enabled again, ready to retry.
+    const fail = (msg: string) => {
       isSubmittingRef.current = false;
       setStatus("error");
-      setErrorMsg("Uy, alguien más se anotó con ese justo ahora — elige otro");
-      setSelectedItemId(null);
-      setItemsRefreshKey((k) => k + 1);
+      setErrorMsg(msg);
+    };
+
+    try {
+      // Anti-spam: one RSVP per name. Checked before claim_item so a
+      // duplicate never takes an item off the list.
+      if (await hasRsvpNamed(nombreInvitado)) {
+        fail(
+          `Ya registramos tu confirmación antes, ${nombreInvitado} — si necesitas cambiar algo avísale directo al anfitrión`
+        );
+        return;
+      }
+
+      // Declining: nothing to claim, straight insert. Stays locked
+      // (isSubmittingRef) until the farewell animation finishes.
+      if (!asistencia) {
+        await insertRsvp({
+          nombre: nombreInvitado,
+          asistencia: false,
+          utensilio: null,
+          item_id: null,
+        });
+        setFarewellName(nombreInvitado);
+        setStatus("farewell");
+        return;
+      }
+
+      if (selectedItemId === OTRO_ID) {
+        // "Otro": free text, no real item to claim.
+        await insertRsvp({
+          nombre: nombreInvitado,
+          asistencia: true,
+          utensilio: otroTexto.trim(),
+          item_id: null,
+        });
+      } else {
+        const { error: claimError, status: claimStatus } = await supabase
+          .rpc("claim_item", { item_id_input: selectedItemId })
+          .abortSignal(requestTimeout());
+
+        if (claimError) {
+          // Couldn't reach Supabase: a connection problem, not a taken item.
+          if (isUnavailable(claimStatus)) throw claimError;
+          fail("Uy, alguien más se anotó con ese justo ahora — elige otro");
+          setSelectedItemId(null);
+          setItemsRefreshKey((k) => k + 1);
+          return;
+        }
+
+        await insertRsvp({
+          nombre: nombreInvitado,
+          asistencia: true,
+          utensilio: items.find((it) => it.id === selectedItemId)?.nombre ?? "",
+          item_id: selectedItemId,
+        });
+      }
+    } catch {
+      // Offline, timeout, Supabase down or paused (free tier)…
+      fail(SAVE_ERROR_MSG);
       return;
     }
-
-    const { error } = await supabase.from("rsvps").insert({
-      nombre: nombre.trim(),
-      asistencia,
-      utensilio: items.find((it) => it.id === selectedItemId)?.nombre ?? "",
-      item_id: selectedItemId,
-    });
 
     isSubmittingRef.current = false;
-
-    if (error) {
-      setStatus("error");
-      setErrorMsg("No se pudo enviar tu confirmación. Intenta de nuevo.");
-      return;
-    }
-
     setStatus("success");
     resetForm();
   };
@@ -517,9 +546,8 @@ export default function RsvpForm() {
 
   return (
     <section
-      className="section"
+      className="section rsvp-section"
       ref={containerRef}
-      style={{ paddingBottom: "calc(var(--section-pad) + clamp(60px, 10vw, 110px))" }}
     >
 
       {/* Furniture decor — edges only, behind the form (z-index 0). */}
@@ -568,7 +596,7 @@ export default function RsvpForm() {
             position: "absolute",
             left: 0,
             bottom: "1.5rem",
-            height: "clamp(150px, 24vw, 260px)",
+            height: "var(--moto-h)",
             width: "auto",
             transform: "translateX(-100%)",
             willChange: "transform",

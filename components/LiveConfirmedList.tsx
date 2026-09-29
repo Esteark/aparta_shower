@@ -117,6 +117,9 @@ export default function LiveConfirmedList() {
   const [guests, setGuests] = useState<Guest[]>([]);
   const [loadState, setLoadState] = useState<LoadState>("loading");
   const [refreshKey, setRefreshKey] = useState(0);
+  // Realtime couldn't connect: the room still shows the initial list,
+  // with a note that it isn't updating live.
+  const [liveError, setLiveError] = useState(false);
 
   useGSAP(
     (_context, contextSafe) => {
@@ -311,6 +314,8 @@ export default function LiveConfirmedList() {
       .select("id, nombre, created_at")
       .eq("asistencia", true)
       .order("created_at", { ascending: true })
+      // A hung request would leave the skeleton up forever.
+      .abortSignal(AbortSignal.timeout(12_000))
       .then(({ data, error }) => {
         if (!active) return;
         if (error) {
@@ -325,6 +330,9 @@ export default function LiveConfirmedList() {
         cursorRef.current = 0;
         setGuests(initial);
         setLoadState("loaded");
+      })
+      .then(undefined, () => {
+        if (active) setLoadState("error");
       });
 
     return () => {
@@ -386,7 +394,10 @@ export default function LiveConfirmedList() {
           if (id) removeGuest(id);
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        if (status === "SUBSCRIBED") setLiveError(false);
+        else if (status === "CHANNEL_ERROR" || status === "TIMED_OUT") setLiveError(true);
+      });
 
     return () => {
       channel.unsubscribe();
@@ -394,7 +405,11 @@ export default function LiveConfirmedList() {
   }, []);
 
   return (
-    <section className="section section-clip" ref={containerRef} data-nostalgia-quiet>
+    <section
+      className="section section-clip confirmed-section"
+      ref={containerRef}
+      data-nostalgia-quiet
+    >
       <Decor style={{ bottom: "12%", left: "7%" }} opacity={0.18}>
         <PixelIcon type="plus" color="var(--color-black)" size={24} />
       </Decor>
@@ -408,7 +423,7 @@ export default function LiveConfirmedList() {
           {loadState === "error" && (
             <div className="card" style={{ textAlign: "center" }}>
               <p style={{ fontWeight: 700, color: "var(--color-pink)" }}>
-                No pudimos cargar la lista de confirmados.
+                No pudimos cargar la lista en este momento.
               </p>
               <button
                 type="button"
@@ -466,6 +481,16 @@ export default function LiveConfirmedList() {
                 </ul>
               )}
             </div>
+          )}
+
+          {loadState === "loaded" && liveError && (
+            <p
+              role="status"
+              style={{ marginTop: "1rem", textAlign: "center", fontWeight: 700 }}
+            >
+              No pudimos conectar la lista en vivo en este momento — recarga la página para
+              ver lo más reciente.
+            </p>
           )}
         </div>
       </div>
