@@ -209,7 +209,8 @@ h3 {
   }
 }
 
-/* Hero <h1>: the title sprite, the biggest thing on the page. */
+/* Hero <h1>: the title sprite. Desktop keeps its original 420px on
+   purpose — smaller than the tablet size. */
 .hero-content {
   max-width: 820px;
 }
@@ -228,7 +229,7 @@ h3 {
 
 @media (min-width: 1024px) {
   .hero-title-img {
-    width: min(100%, 780px);
+    width: min(100%, 420px);
   }
 }
 

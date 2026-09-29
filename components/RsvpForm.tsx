@@ -13,6 +13,10 @@ import Sprite from "./Sprite";
 type Status = "idle" | "submitting" | "success" | "farewell" | "error";
 type ItemsStatus = "loading" | "loaded" | "error";
 
+// Sentinel for the fixed "Otro (especifica)" option: lives in the same
+// selection state as real item ids, but is never sent to claim_item.
+const OTRO_ID = "__otro__";
+
 async function fetchAvailableItems(): Promise<{ items: Item[]; error: boolean }> {
   const { data, error } = await supabase
     .from("items")
@@ -46,11 +50,9 @@ export default function RsvpForm() {
 
   const [nombre, setNombre] = useState("");
   const [asistencia, setAsistencia] = useState<boolean | null>(null);
-  // Lags `asistencia === true` on the way out so the utensil field can
-  // collapse before it unmounts.
-  const [itemsFieldVisible, setItemsFieldVisible] = useState(false);
   const [farewellName, setFarewellName] = useState("");
   const [selectedItemId, setSelectedItemId] = useState<string | null>(null);
+  const [otroTexto, setOtroTexto] = useState("");
   const [isDropdownOpen, setIsDropdownOpen] = useState(false);
   const [status, setStatus] = useState<Status>("idle");
   const [errorMsg, setErrorMsg] = useState("");
@@ -249,58 +251,41 @@ export default function RsvpForm() {
     if (status === "farewell") playFarewell();
   }, [status, playFarewell]);
 
-  // Utensil field expand/collapse. Height is only locked (overflow hidden)
-  // while tweening, then cleared so the absolutely-positioned dropdown panel
-  // isn't clipped and the field can grow when items finish loading.
+  // The utensil field is derived straight from the current answer on
+  // every render — no separate visibility flag that could lag behind.
+  const showItemsField = asistencia === true;
+
+  // Expand-in when the field mounts. Height is only locked (overflow
+  // hidden) while tweening, then cleared so the absolutely-positioned
+  // dropdown panel isn't clipped and the field can grow when items load.
   // eslint-disable-next-line react-hooks/refs
-  const playItemsFieldIn = contextSafe((fromZero: boolean) => {
+  const playItemsFieldIn = contextSafe(() => {
     const el = itemsFieldRef.current;
     if (!el) return;
-    gsap.killTweensOf(el);
-    if (fromZero) gsap.set(el, { height: 0, opacity: 0 });
-    gsap.set(el, { overflow: "hidden" });
-    gsap.to(el, {
-      height: "auto",
-      opacity: 1,
-      duration: 0.25,
-      ease: "power2.out",
-      clearProps: "height,overflow,opacity",
-    });
-  });
-
-  // eslint-disable-next-line react-hooks/refs
-  const playItemsFieldOut = contextSafe(() => {
-    const el = itemsFieldRef.current;
-    if (!el) {
-      setItemsFieldVisible(false);
-      return;
-    }
-    gsap.killTweensOf(el);
-    gsap.set(el, { overflow: "hidden" });
-    gsap.to(el, {
-      height: 0,
-      opacity: 0,
-      duration: 0.2,
-      ease: "power1.in",
-      onComplete: () => setItemsFieldVisible(false),
-    });
+    gsap.fromTo(
+      el,
+      { height: 0, opacity: 0, overflow: "hidden" },
+      {
+        height: "auto",
+        opacity: 1,
+        duration: 0.25,
+        ease: "power2.out",
+        clearProps: "height,overflow,opacity",
+      }
+    );
   });
 
   // Layout effect so the field is collapsed before its first paint.
   useLayoutEffect(() => {
-    if (itemsFieldVisible) playItemsFieldIn(true);
-  }, [itemsFieldVisible, playItemsFieldIn]);
+    if (showItemsField) playItemsFieldIn();
+  }, [showItemsField, playItemsFieldIn]);
 
   const chooseAsistencia = (value: boolean) => {
     setAsistencia(value);
-    if (value) {
-      // Mid-collapse: reverse it in place; otherwise mount → layout effect.
-      if (itemsFieldVisible) playItemsFieldIn(false);
-      else setItemsFieldVisible(true);
-    } else {
+    if (!value) {
       setSelectedItemId(null);
+      setOtroTexto("");
       setIsDropdownOpen(false);
-      if (itemsFieldVisible) playItemsFieldOut();
     }
   };
 
@@ -406,8 +391,8 @@ export default function RsvpForm() {
   const resetForm = () => {
     setNombre("");
     setAsistencia(null);
-    setItemsFieldVisible(false);
     setSelectedItemId(null);
+    setOtroTexto("");
   };
 
   const selectItem = (id: string) => {
@@ -427,7 +412,9 @@ export default function RsvpForm() {
           ? "Cuéntanos si asistirás."
           : asistencia && !selectedItemId
             ? "Elige qué vas a llevar."
-            : "";
+            : asistencia && selectedItemId === OTRO_ID && !otroTexto.trim()
+              ? "Cuéntanos qué vas a traer."
+              : "";
     if (missing) {
       setStatus("error");
       setErrorMsg(missing);
@@ -460,6 +447,28 @@ export default function RsvpForm() {
 
       setFarewellName(nombreInvitado);
       setStatus("farewell");
+      return;
+    }
+
+    // "Otro": free text, no real item to claim.
+    if (selectedItemId === OTRO_ID) {
+      const { error } = await supabase.from("rsvps").insert({
+        nombre: nombre.trim(),
+        asistencia: true,
+        utensilio: otroTexto.trim(),
+        item_id: null,
+      });
+
+      isSubmittingRef.current = false;
+
+      if (error) {
+        setStatus("error");
+        setErrorMsg("No se pudo enviar tu confirmación. Intenta de nuevo.");
+        return;
+      }
+
+      setStatus("success");
+      resetForm();
       return;
     }
 
@@ -496,6 +505,7 @@ export default function RsvpForm() {
   };
 
   const selectedItem = items.find((it) => it.id === selectedItemId) ?? null;
+  const isOtro = selectedItemId === OTRO_ID;
 
   return (
     <section
@@ -683,7 +693,7 @@ export default function RsvpForm() {
               </button>
             </div>
 
-            {itemsFieldVisible && (
+            {showItemsField && (
               <div ref={itemsFieldRef}>
                 <label className="field-label" style={{ marginTop: "1.25rem" }}>
                   ¿Qué vas a llevar?
@@ -710,12 +720,12 @@ export default function RsvpForm() {
                 )}
 
                 {itemsStatus === "loaded" && items.length === 0 && (
-                  <p style={{ fontWeight: 600 }}>
-                    ¡Ya no quedan items disponibles! Escríbenos para coordinar otra cosa.
+                  <p style={{ fontWeight: 600, marginBottom: "0.75rem" }}>
+                    ¡Ya no quedan items de la lista! Elige “Otro” y cuéntanos qué traes.
                   </p>
                 )}
 
-                {itemsStatus === "loaded" && items.length > 0 && (
+                {itemsStatus === "loaded" && (
                   <div className="item-combobox" ref={comboboxRef}>
                     <button
                       type="button"
@@ -732,7 +742,11 @@ export default function RsvpForm() {
                           whiteSpace: "nowrap",
                         }}
                       >
-                        {selectedItem ? selectedItem.nombre : "Selecciona un item"}
+                        {isOtro
+                          ? "Otro (especifica)"
+                          : selectedItem
+                            ? selectedItem.nombre
+                            : "Selecciona un item"}
                       </span>
                       <span style={{ display: "flex", alignItems: "center", gap: "0.4rem" }}>
                         {selectedItemId && (
@@ -790,9 +804,41 @@ export default function RsvpForm() {
                             </div>
                           );
                         })}
+                        <button
+                          type="button"
+                          role="option"
+                          aria-selected={isOtro}
+                          data-active={isOtro}
+                          className="item-option"
+                          onClick={() => selectItem(OTRO_ID)}
+                        >
+                          Otro (especifica)
+                        </button>
                       </div>
                     )}
                   </div>
+                )}
+
+                {isOtro && (
+                  <>
+                    <label
+                      className="field-label"
+                      htmlFor="otro"
+                      style={{ marginTop: "1.25rem" }}
+                    >
+                      ¿Qué vas a traer?
+                    </label>
+                    <input
+                      id="otro"
+                      type="text"
+                      className="text-input"
+                      value={otroTexto}
+                      onChange={(e) => setOtroTexto(e.target.value)}
+                      placeholder="Escribe qué vas a traer"
+                      maxLength={80}
+                      aria-required="true"
+                    />
+                  </>
                 )}
               </div>
             )}
