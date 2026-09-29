@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useLayoutEffect, useRef, useState } from "react";
-import { gsap, useGSAP, registerGsapPlugins } from "@/lib/gsap";
+import { gsap, ScrollTrigger, useGSAP, registerGsapPlugins } from "@/lib/gsap";
 import { supabase } from "@/lib/supabase";
 import { Item, ITEM_CATEGORIAS } from "@/types/rsvp";
 import PixelIcon from "./PixelIcon";
@@ -71,23 +71,31 @@ export default function RsvpForm() {
       animateDecor(containerRef.current, -30, 1.45);
 
       // The quad bike drives across behind the form, tied directly to the
-      // scroll position (scrub) — off-screen left before the section
-      // arrives, off-screen right once it's been scrolled past.
-      gsap.fromTo(
-        ".rsvp-moto",
-        { x: () => -(containerRef.current?.querySelector(".rsvp-moto")?.clientWidth ?? 0) },
-        {
-          x: () => containerRef.current?.querySelector(".rsvp-moto-lane")?.clientWidth ?? 0,
-          ease: "none",
-          scrollTrigger: {
-            trigger: containerRef.current,
-            start: "top 80%",
-            end: "bottom 20%",
-            scrub: 0.6,
-            invalidateOnRefresh: true,
-          },
-        }
-      );
+      // scroll position (scrub) — off-screen left before it's in view,
+      // off-screen right once it's been scrolled past.
+      const driveMoto = (scrollTrigger: ScrollTrigger.Vars) =>
+        gsap.fromTo(
+          ".rsvp-moto",
+          { x: () => -(containerRef.current?.querySelector(".rsvp-moto")?.clientWidth ?? 0) },
+          {
+            x: () => containerRef.current?.querySelector(".rsvp-moto-lane")?.clientWidth ?? 0,
+            ease: "none",
+            scrollTrigger: { scrub: 0.6, invalidateOnRefresh: true, ...scrollTrigger },
+          }
+        );
+
+      const mm = gsap.matchMedia(containerRef.current ?? undefined);
+      // Tablet/desktop: the crossing spans the whole section.
+      mm.add("(min-width: 769px)", () => {
+        driveMoto({ trigger: containerRef.current, start: "top 80%", end: "bottom 20%" });
+      });
+      // Mobile: the section is taller than the screen, so a section-wide
+      // range only brought the bike on screen at the very end, already up
+      // against the top edge. Here the crossing runs while the bike itself
+      // is fully in view — from entering at the bottom to ~20% from the top.
+      mm.add("(max-width: 768px)", () => {
+        driveMoto({ trigger: ".rsvp-moto", start: "bottom bottom", end: "top 20%" });
+      });
 
       // One-shot entrance for the form card — never hides again once
       // shown, unlike the narrative sections above it.

@@ -458,6 +458,16 @@ h3 {
   aspect-ratio: 16 / 10;
 }
 
+.room-wrap {
+  margin-top: 1.5rem;
+}
+
+@media (max-width: 768px) {
+  .room-wrap {
+    margin-top: 0.5rem;
+  }
+}
+
 /* Tablet: the floor spans the whole stage (its tiles run from ~5% to
    ~97% of the image, so nothing gets clipped). */
 @media (min-width: 641px) and (max-width: 1023px) {
@@ -468,18 +478,19 @@ h3 {
 
 /* Mobile: bigger room. The stage bleeds over the section's 1.25rem side
    padding to use the full screen width (no frame, so it blends in), and
-   is taller (3/4) so the enlarged chat still fits above the heads. */
+   taller than wide (11/12) so ~3 chat lines fit above the heads without
+   a big empty gap under the title. */
 @media (max-width: 640px) {
   .room-stage {
     --floor-scale: 1.14;
     --cast-h: 66%;
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 11 / 12;
     width: calc(100% + 2.5rem);
     margin-inline: -1.25rem;
   }
 
   .room-skeleton {
-    aspect-ratio: 3 / 4;
+    aspect-ratio: 11 / 12;
   }
 }
 

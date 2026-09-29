@@ -402,7 +402,7 @@ export default function LiveConfirmedList() {
       <div className="container room-container">
         <h2 className="section-title">Quiénes ya confirmaron</h2>
 
-        <div style={{ marginTop: "1.5rem" }}>
+        <div className="room-wrap">
           {loadState === "loading" && <div className="skeleton room-skeleton" />}
 
           {loadState === "error" && (
