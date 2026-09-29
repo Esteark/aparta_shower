@@ -10,9 +10,9 @@ import { HOLD_MIN, HOLD_MAX } from "./NostalgiaBubbles";
 
 // Sprite keys follow the PNG file names; `label` is what's shown on screen.
 const HEADS: { name: SpriteName; label: string; tilt: number }[] = [
-  { name: "cabezaSantiago", label: "Santi", tilt: -12 },
-  { name: "cabezaEsteban", label: "Estebark", tilt: 9 },
+  { name: "cabezaSantiago", label: "Santo", tilt: -12 },
   { name: "cabezaJuan", label: "Chepe", tilt: -7 },
+  { name: "cabezaEsteban", label: "Estebark", tilt: 9 },
 ];
 
 // Each head starts talking on its own beat so they don't speak in unison.
@@ -34,7 +34,7 @@ export default function CharactersParallax() {
 
       // Narrative reveal: hides again when scrolled past in either
       // direction and replays on the way back. Triggers on the content
-      // block (not the 100svh section) so the reverse happens while the
+      // block (not the whole section) so the reverse happens while the
       // content is still on screen.
       const tl = gsap.timeline({
         defaults: { ease: "power3.out" },
@@ -182,7 +182,7 @@ export default function CharactersParallax() {
       </Decor>
 
       <div className="container" ref={contentRef} style={{ textAlign: "center" }}>
-        <h2 className="chars-title" style={{ fontSize: "1.15rem" }}>
+        <h2 className="section-title chars-title">
           Todos armando fiesta
         </h2>
         <p className="chars-text" style={{ marginTop: "0.75rem", fontWeight: 600 }}>

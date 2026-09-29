@@ -74,15 +74,39 @@ h3 {
   white-space: nowrap;
 }
 
+/* Sections size to their content (only the hero fills the first screen),
+   so the scroll reads as one continuous flow; --section-pad alone keeps
+   each block apart. */
 .section {
+  --section-pad: clamp(3rem, 7svh, 4.5rem);
   position: relative;
-  min-height: 100svh;
   width: 100%;
   display: flex;
   flex-direction: column;
   align-items: center;
   justify-content: center;
-  padding: 3rem 1.25rem;
+  padding: var(--section-pad) 1.25rem;
+}
+
+/* Section headings (<h2>): the dominant element of each section. Mobile
+   big, tablet a step up, desktop the strongest jump. Always below the
+   hero <h1> (title sprite, see .hero-title-img). */
+.section-title {
+  font-size: 1.6rem;
+  line-height: 1.35;
+  text-align: center;
+}
+
+@media (min-width: 768px) {
+  .section-title {
+    font-size: 2.1rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .section-title {
+    font-size: 3rem;
+  }
 }
 
 /* Only sections with no overflowing overlay content (dropdown panels,
@@ -105,9 +129,10 @@ h3 {
   will-change: transform;
 }
 
-/* Floating furniture props (sofas, fridge, palm, fridge+palm). Mobile and
-   tablet keep their original sizes; desktop makes them much bigger for
-   more background presence. width: auto keeps each sprite's aspect. */
+/* Floating furniture props (sofas, fridge, palm, fridge+palm) and pixel
+   icons: visual protagonists, big at every breakpoint and bigger again on
+   desktop. width: auto keeps each sprite's aspect. Icons are fixed-size
+   SVGs, so they're scaled with zoom (keeps their layout box in sync). */
 .decor-prop-tall,
 .decor-prop-combo,
 .decor-prop-sofa {
@@ -115,41 +140,101 @@ h3 {
 }
 
 .decor-prop-tall {
-  height: clamp(80px, 14vw, 130px);
+  height: clamp(140px, 26vw, 230px);
 }
 
 .decor-prop-combo {
-  height: clamp(90px, 15vw, 140px);
+  height: clamp(155px, 28vw, 250px);
 }
 
 .decor-prop-sofa {
-  height: clamp(60px, 11vw, 100px);
+  height: clamp(105px, 20vw, 175px);
+}
+
+.decor-idle > svg {
+  zoom: 2;
+}
+
+@media (min-width: 768px) {
+  .decor-idle > svg {
+    zoom: 2.5;
+  }
 }
 
 @media (min-width: 1024px) {
   .decor-prop-tall {
-    height: clamp(180px, 15vw, 240px);
+    height: clamp(270px, 22vw, 360px);
   }
 
   .decor-prop-combo {
-    height: clamp(195px, 16vw, 255px);
+    height: clamp(290px, 23vw, 380px);
   }
 
   .decor-prop-sofa {
-    height: clamp(140px, 12vw, 185px);
+    height: clamp(210px, 17vw, 280px);
+  }
+
+  .decor-idle > svg {
+    zoom: 3.2;
   }
 }
 
-/* Hero Habbo logo: unchanged on mobile, much bigger from tablet up. */
+/* Hero Habbo logo: a badge pinned to the top-left corner. The hero
+   reserves its height (+ a gap) as top padding, so the centered content
+   can never slide under it at any viewport size. */
+.hero-section {
+  --hero-logo-w: clamp(72px, 20vw, 96px);
+  min-height: 100svh;
+  padding-top: calc(var(--hero-logo-w) * 252 / 257 + 2rem);
+}
+
 .hero-logo {
-  width: clamp(48px, 12vw, 72px);
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 2;
+  width: var(--hero-logo-w);
   height: auto;
 }
 
 @media (min-width: 768px) {
-  .hero-logo {
-    width: clamp(130px, 13vw, 180px);
+  .hero-section {
+    --hero-logo-w: clamp(130px, 17vw, 170px);
   }
+}
+
+@media (min-width: 1024px) {
+  .hero-section {
+    --hero-logo-w: clamp(170px, 14vw, 220px);
+  }
+}
+
+/* Hero <h1>: the title sprite, the biggest thing on the page. */
+.hero-content {
+  max-width: 820px;
+}
+
+.hero-title-img {
+  width: min(100%, 460px);
+  height: auto;
+  margin: 0 auto;
+}
+
+@media (min-width: 768px) {
+  .hero-title-img {
+    width: min(100%, 580px);
+  }
+}
+
+@media (min-width: 1024px) {
+  .hero-title-img {
+    width: min(100%, 780px);
+  }
+}
+
+.hero-subtitle {
+  max-width: 640px;
+  margin-inline: auto;
 }
 
 .section > .container {
@@ -352,8 +437,12 @@ h3 {
    sized in % / cqw so the whole room scales with the stage.
    --floor-scale: floor width as a fraction of the stage.
    --cast-h: rendered height of the characters, as % of the floor box. */
+.room-container {
+  max-width: 1160px;
+}
+
 .room-stage {
-  --floor-scale: 0.84;
+  --floor-scale: 0.92;
   --cast-h: 43%;
   position: relative;
   overflow: hidden;
@@ -368,12 +457,20 @@ h3 {
   aspect-ratio: 16 / 10;
 }
 
+/* Tablet: the floor spans the whole stage (its tiles run from ~5% to
+   ~97% of the image, so nothing gets clipped). */
+@media (min-width: 641px) and (max-width: 1023px) {
+  .room-stage {
+    --floor-scale: 1;
+  }
+}
+
 /* Mobile: bigger room. The stage bleeds over the section's 1.25rem side
    padding to use the full screen width (no frame, so it blends in), and
    is taller (3/4) so the enlarged chat still fits above the heads. */
 @media (max-width: 640px) {
   .room-stage {
-    --floor-scale: 1.1;
+    --floor-scale: 1.14;
     --cast-h: 66%;
     aspect-ratio: 3 / 4;
     width: calc(100% + 2.5rem);

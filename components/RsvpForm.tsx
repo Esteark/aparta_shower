@@ -501,7 +501,7 @@ export default function RsvpForm() {
     <section
       className="section"
       ref={containerRef}
-      style={{ paddingBottom: "calc(3rem + clamp(60px, 10vw, 110px))" }}
+      style={{ paddingBottom: "calc(var(--section-pad) + clamp(60px, 10vw, 110px))" }}
     >
 
       {/* Furniture decor — edges only, behind the form (z-index 0). */}
@@ -559,7 +559,7 @@ export default function RsvpForm() {
       </div>
 
       <div className="container" style={{ position: "relative", zIndex: 1 }}>
-        <h2 style={{ fontSize: "1.15rem", textAlign: "center" }}>Confirma tu asistencia</h2>
+        <h2 className="section-title">Confirma tu asistencia</h2>
 
         {status === "success" ? (
           <div

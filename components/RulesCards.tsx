@@ -134,7 +134,7 @@ export default function RulesCards() {
       </Decor>
 
       <div className="container">
-        <h2 className="rules-title" style={{ fontSize: "1.15rem", textAlign: "center" }}>
+        <h2 className="section-title rules-title">
           Info de la fiesta
         </h2>
 

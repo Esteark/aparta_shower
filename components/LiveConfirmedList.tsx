@@ -399,8 +399,8 @@ export default function LiveConfirmedList() {
         <PixelIcon type="plus" color="var(--color-black)" size={24} />
       </Decor>
 
-      <div className="container" style={{ maxWidth: 880 }}>
-        <h2 style={{ fontSize: "1.15rem", textAlign: "center" }}>Quiénes ya confirmaron</h2>
+      <div className="container room-container">
+        <h2 className="section-title">Quiénes ya confirmaron</h2>
 
         <div style={{ marginTop: "1.5rem" }}>
           {loadState === "loading" && <div className="skeleton room-skeleton" />}

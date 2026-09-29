@@ -112,7 +112,7 @@ export default function Hero() {
   });
 
   return (
-    <section className="section section-clip" ref={containerRef}>
+    <section className="section section-clip hero-section" ref={containerRef}>
       <Decor style={{ top: "8%", right: "7%" }} opacity={0.18}>
         <PixelIcon
           type="plus"
@@ -141,21 +141,15 @@ export default function Hero() {
         alt="Habbo"
         className="hero-badge hero-logo"
         priority
-        style={{
-          position: "absolute",
-          top: "1rem",
-          left: "1rem",
-          zIndex: 2,
-        }}
       />
 
-      <div className="container" ref={contentRef} style={{ textAlign: "center" }}>
+      <div className="container hero-content" ref={contentRef} style={{ textAlign: "center" }}>
         <h1 className="hero-title" style={{ margin: "0 auto" }}>
           <Sprite
             name="titulo"
             alt="¡Aparta Shower Cumpleañero!"
             priority
-            style={{ width: "min(100%, 420px)", height: "auto", margin: "0 auto" }}
+            className="hero-title-img"
           />
         </h1>
 

@@ -63,7 +63,7 @@ export function animateDecor(
     gsap.to(el, {
       y: `+=${Math.round(gsap.utils.random(12, 20, 1) * idleIntensity)}`,
       rotation: `+=${gsap.utils.random([-1, 1]) * gsap.utils.random(4, 8, 0.5) * idleIntensity}`,
-      duration: gsap.utils.random(2.5, 4, 0.1),
+      duration: gsap.utils.random(1.5, 4, 0.1),
       delay: gsap.utils.random(0, 1.5, 0.1),
       repeat: -1,
       yoyo: true,
