@@ -179,9 +179,11 @@ h3 {
   }
 }
 
-/* Hero Habbo logo: a badge pinned to the top-left corner. The hero
-   reserves its height (+ a gap) as top padding, so the centered content
-   can never slide under it at any viewport size. */
+/* Hero Habbo logo: a badge pinned to the top-left corner. On mobile and
+   tablet the hero reserves its height (+ a gap) as top padding, so the
+   centered content can never slide under it. Desktop has enough side room
+   for the logo next to the content column, so it drops that reserve and
+   the content stays vertically centered. */
 .hero-section {
   --hero-logo-w: clamp(72px, 20vw, 96px);
   min-height: 100svh;
@@ -206,6 +208,7 @@ h3 {
 @media (min-width: 1024px) {
   .hero-section {
     --hero-logo-w: clamp(170px, 14vw, 220px);
+    padding-top: var(--section-pad);
   }
 }
 
