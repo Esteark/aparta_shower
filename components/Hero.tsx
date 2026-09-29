@@ -41,8 +41,7 @@ export default function Hero() {
           { y: 24, opacity: 0, duration: 0.5, stagger: 0.12 },
           "<0.2"
         )
-        .from(".hero-cue", { opacity: 0, duration: 0.4 }, "<0.3")
-        .from(".hero-badge", { y: 20, opacity: 0, duration: 0.5 }, "<0.2");
+        .from(".hero-cue", { opacity: 0, duration: 0.4 }, "<0.3");
 
       // The title PNG gets its own trigger so it reveals/hides based on its
       // own position. Same fade + slide as before; on first load it's
@@ -247,13 +246,6 @@ export default function Hero() {
           </span>
           <span className="hero-cue-label">Desliza para más</span>
         </button>
-
-        <Sprite
-          name="logoHabbo"
-          alt="Habbo"
-          className="hero-badge hero-logo"
-          priority
-        />
       </div>
     </section>
   );

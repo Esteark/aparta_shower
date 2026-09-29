@@ -179,30 +179,35 @@ h3 {
   }
 }
 
-/* Hero Habbo logo: last child of the hero content, in normal flow and
-   centered, so it closes the hero below the scroll cue and can never
-   overlap anything. Sized per breakpoint. */
 .hero-section {
-  --hero-logo-w: clamp(120px, 36vw, 150px);
   min-height: 100svh;
 }
 
-.hero-logo {
-  display: block;
-  width: var(--hero-logo-w);
+/* Site footer (app/page.tsx): the Habbo logo, centered, closing the page
+   after the last section. Same per-breakpoint sizes it had in the hero. */
+.site-footer {
+  --footer-logo-w: clamp(120px, 36vw, 150px);
+  position: relative;
+  z-index: 1;
+  display: flex;
+  justify-content: center;
+  padding: 1rem 1.25rem 2.5rem;
+}
+
+.site-footer-logo {
+  width: var(--footer-logo-w);
   height: auto;
-  margin: 2rem auto 0;
 }
 
 @media (min-width: 768px) {
-  .hero-section {
-    --hero-logo-w: clamp(130px, 17vw, 170px);
+  .site-footer {
+    --footer-logo-w: clamp(130px, 17vw, 170px);
   }
 }
 
 @media (min-width: 1024px) {
-  .hero-section {
-    --hero-logo-w: clamp(170px, 14vw, 220px);
+  .site-footer {
+    --footer-logo-w: clamp(170px, 14vw, 220px);
   }
 }
 
