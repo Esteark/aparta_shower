@@ -4,7 +4,7 @@ import RulesCards from "@/components/RulesCards";
 import RsvpForm from "@/components/RsvpForm";
 import LiveConfirmedList from "@/components/LiveConfirmedList";
 import NostalgiaBubbles from "@/components/NostalgiaBubbles";
-import Sprite from "@/components/Sprite";
+import SiteFooter from "@/components/SiteFooter";
 
 export default function Home() {
   return (
@@ -14,9 +14,7 @@ export default function Home() {
       <RulesCards />
       <RsvpForm />
       <LiveConfirmedList />
-      <footer className="site-footer">
-        <Sprite name="logoHabbo" alt="Habbo" className="site-footer-logo" />
-      </footer>
+      <SiteFooter />
       <NostalgiaBubbles />
     </main>
   );
