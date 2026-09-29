@@ -34,15 +34,15 @@ export default function Hero() {
           toggleActions: "play reverse play reverse",
         },
       });
-      tl.from(".hero-badge", { y: -20, opacity: 0, duration: 0.5 })
-        .from(".hero-subtitle", { y: 20, opacity: 0, duration: 0.6 }, "<0.2")
+      tl.from(".hero-subtitle", { y: 20, opacity: 0, duration: 0.6 }, 0.2)
         .from(".hero-date", { y: 20, opacity: 0, duration: 0.5 }, "<0.15")
         .from(
           ".hero-avatar",
           { y: 24, opacity: 0, duration: 0.5, stagger: 0.12 },
           "<0.2"
         )
-        .from(".hero-cue", { opacity: 0, duration: 0.4 }, "<0.3");
+        .from(".hero-cue", { opacity: 0, duration: 0.4 }, "<0.3")
+        .from(".hero-badge", { y: 20, opacity: 0, duration: 0.5 }, "<0.2");
 
       // The title PNG gets its own trigger so it reveals/hides based on its
       // own position. Same fade + slide as before; on first load it's
@@ -135,13 +135,6 @@ export default function Hero() {
       <Decor style={{ bottom: "4%", left: "3%" }} opacity={0.2} depth={0.7}>
         <Sprite name="sillonRosado" className="decor-prop-sofa" />
       </Decor>
-
-      <Sprite
-        name="logoHabbo"
-        alt="Habbo"
-        className="hero-badge hero-logo"
-        priority
-      />
 
       <div className="container hero-content" ref={contentRef} style={{ textAlign: "center" }}>
         <h1 className="hero-title" style={{ margin: "0 auto" }}>
@@ -254,6 +247,13 @@ export default function Hero() {
           </span>
           <span className="hero-cue-label">Desliza para más</span>
         </button>
+
+        <Sprite
+          name="logoHabbo"
+          alt="Habbo"
+          className="hero-badge hero-logo"
+          priority
+        />
       </div>
     </section>
   );
