@@ -184,15 +184,34 @@ h3 {
 }
 
 /* Site footer (app/page.tsx): the Habbo logo, centered, closing the page
-   after the last section. The confirmed room above trims its bottom
-   padding so the logo sits close to the room's floor, not glued to it. */
+   after the last section, right under the room's floor. The floor PNG
+   has a transparent strip under its center (rows 517–608 of 608, i.e.
+   9.8% of the floor's width), so the footer is pulled up over that strip
+   and over the section's bottom padding, leaving ~12px of air. Floor
+   width per breakpoint mirrors .room-stage / .room-floor (% here = the
+   footer's width, which matches the page width). */
 .site-footer {
   --footer-logo-w: clamp(170px, 50vw, 210px);
+  /* Mobile: the stage bleeds to full width, floor scale 1.14. */
+  --floor-w: calc(1.14 * 100%);
   position: relative;
   z-index: 1;
   display: flex;
   justify-content: center;
+  margin-top: calc(-0.098 * var(--floor-w) - 1.25rem);
   padding: 0.5rem 1.25rem 2.5rem;
+}
+
+@media (min-width: 641px) and (max-width: 1023px) {
+  .site-footer {
+    --floor-w: calc(100% - 2.5rem);
+  }
+}
+
+@media (min-width: 1024px) {
+  .site-footer {
+    --floor-w: calc(0.92 * min(100% - 2.5rem, 1160px));
+  }
 }
 
 .confirmed-section {
