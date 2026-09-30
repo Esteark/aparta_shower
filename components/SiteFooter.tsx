@@ -3,9 +3,26 @@
 import { useRef } from "react";
 import { gsap, useGSAP, registerGsapPlugins } from "@/lib/gsap";
 import Sprite from "./Sprite";
+import { downloadConfirmedReport } from "@/lib/confirmedReport";
+
+// Hidden shortcut: 3 clicks on the logo, each within 1.5s of the last.
+const TRIPLE_CLICK_WINDOW = 1500;
 
 export default function SiteFooter() {
   const footerRef = useRef<HTMLElement>(null);
+  const clicks = useRef({ count: 0, timer: 0 });
+
+  const onLogoClick = () => {
+    const c = clicks.current;
+    window.clearTimeout(c.timer);
+    c.count += 1;
+    if (c.count >= 3) {
+      c.count = 0;
+      downloadConfirmedReport();
+      return;
+    }
+    c.timer = window.setTimeout(() => (c.count = 0), TRIPLE_CLICK_WINDOW);
+  };
 
   useGSAP(
     () => {
@@ -48,7 +65,7 @@ export default function SiteFooter() {
 
   return (
     <footer className="site-footer" ref={footerRef}>
-      <div className="site-footer-reveal">
+      <div className="site-footer-reveal" onClick={onLogoClick}>
         <Sprite name="logoHabbo" alt="Habbo" className="site-footer-logo" />
       </div>
     </footer>
