@@ -1,4 +1,5 @@
 import type { CSSProperties, Ref } from "react";
+import { preload } from "react-dom";
 
 export const SPRITES = {
   chepe: { src: "/sprites/habbo_0000_chepe.png", width: 202, height: 484 },
@@ -39,6 +40,9 @@ export default function Sprite({
   priority?: boolean;
 }) {
   const { src, width, height } = SPRITES[name];
+  // Above-the-fold sprites: emit <link rel="preload"> in <head> so they're
+  // fetched with the HTML, not after layout.
+  if (priority) preload(src, { as: "image", fetchPriority: "high" });
   return (
     // eslint-disable-next-line @next/next/no-img-element
     <img

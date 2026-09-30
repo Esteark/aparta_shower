@@ -118,9 +118,10 @@ export default function RsvpForm() {
         );
 
       const mm = gsap.matchMedia(containerRef.current ?? undefined);
-      // Tablet: the crossing spans the whole section.
+      // Tablet: the bike now sits below the form here too (own lane in
+      // globals.css), so it follows the bike like desktop does.
       mm.add("(min-width: 769px) and (max-width: 1023px)", () => {
-        driveMoto({ trigger: containerRef.current, start: "top 80%", end: "bottom 20%" });
+        driveMoto({ trigger: ".rsvp-moto", start: "bottom bottom", end: "top 15%" });
       });
       // Desktop: the bike now sits below the form, so a section-wide range
       // would finish with it half off the top edge — run the crossing while

@@ -103,10 +103,15 @@ export default function Hero() {
     startNostalgia();
     const next = containerRef.current?.nextElementSibling;
     if (!next) return;
+    // Numeric target + no autoKill: on iOS/iPadOS Safari the scroll position
+    // reads back rounded/shifted by the toolbar, which autoKill mistook for
+    // the user scrolling and killed the tween on its first frame.
+    const y = next.getBoundingClientRect().top + window.scrollY;
     gsap.to(window, {
       duration: 0.9,
       ease: "power2.inOut",
-      scrollTo: { y: next, autoKill: true },
+      scrollTo: { y, autoKill: false },
+      overwrite: true,
     });
   });
 
@@ -129,10 +134,10 @@ export default function Hero() {
 
       {/* Furniture decor — corners/edges only, never behind the title. */}
       <Decor style={{ bottom: "6%", right: "3%" }} opacity={0.22} depth={1.4}>
-        <Sprite name="palmera" className="decor-prop-tall" />
+        <Sprite name="palmera" className="decor-prop-tall" priority />
       </Decor>
       <Decor style={{ bottom: "4%", left: "3%" }} opacity={0.2} depth={0.7}>
-        <Sprite name="sillonRosado" className="decor-prop-sofa" />
+        <Sprite name="sillonRosado" className="decor-prop-sofa" priority />
       </Decor>
 
       <div className="container hero-content" ref={contentRef} style={{ textAlign: "center" }}>
